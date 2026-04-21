@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 
 // Mock implementation - in production, STRIPE_SECRET_KEY must be in .env
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock', {
-  apiVersion: '2025-02-24.acacia', // using a fixed api version
+  apiVersion: '2026-03-25.dahlia', // using a fixed api version
 });
 
 export async function POST(request: Request) {

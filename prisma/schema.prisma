@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          String    @default("PATIENT") // "PROFESSIONAL" or "PATIENT"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  professionalProfile ProfessionalProfile?
+  patientProfile      PatientProfile?
+}
+
+model ProfessionalProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  professionalCode String  @unique // ID único para compartilhar com outros profissionais
+  professionType   String  // "NUTRITIONIST" or "PERSONAL_TRAINER"
+  
+  // Billing
+  subscriptionStatus String   @default("ACTIVE") // ACTIVE, PAST_DUE, CANCELED
+  invitesSentCount   Int      @default(0)
+  currentPlanLimit   Int      @default(25) // Aumenta de 25 em 25
+  currentMonthlyFee  Float    @default(65.0) // 65, 115, 165...
+  
+  // Relacionamentos
+  patients          PatientProfile[] // Pacientes que ele gerencia
+  invitations       Invitation[]
+  
+  // Conexões com outros profissionais (Ida e Volta)
+  connectionsInitiated ProfessionalConnection[] @relation("Initiator")
+  connectionsReceived  ProfessionalConnection[] @relation("Receiver")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PatientProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  weight          Float?
+  height          Float?
+  goals           String?
+  
+  // Profissionais que acompanham este paciente
+  professionals   ProfessionalProfile[] 
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProfessionalConnection {
+  id            String   @id @default(cuid())
+  
+  initiatorId   String
+  initiator     ProfessionalProfile @relation("Initiator", fields: [initiatorId], references: [id], onDelete: Cascade)
+  
+  receiverId    String
+  receiver      ProfessionalProfile @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  status        String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([initiatorId, receiverId])
+}
+
+model Invitation {
+  id              String   @id @default(cuid())
+  professionalId  String
+  professional    ProfessionalProfile @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  
+  patientEmail    String
+  token           String   @unique
+  status          String   @default("PENDING") // PENDING, USED, EXPIRED
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
